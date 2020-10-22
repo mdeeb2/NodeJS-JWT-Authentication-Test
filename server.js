@@ -2,31 +2,31 @@ const express = require('express');
 const app = express();
 
 const jwt = require('jsonwebtoken');
+
 const exjwt = require('express-jwt');
 const bodyParser = require('body-parser');
 const path = require('path');
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-    res.setHeader('Access-Control-Allow-Origin', 'Content-type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-type,Authorization');
     next();
 });
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true}));
-
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const PORT = 3000;
 
 const secretKey = 'My super secret key';
 const jwtMW = exjwt({
-    secret: secretKey, 
+    secret: secretKey,
     algorithms: ['HS256']
 });
 
 let users = [
     {
-        id: 1,
+        id: 1, 
         username: 'fabio',
         password: '123'
     },
@@ -35,15 +35,13 @@ let users = [
         username: 'nolasco',
         password: '456'
     }
-]
+];
 
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-    /* console.log('This is me', username, password);
-    res.json({ data: 'It works'}); */
-
+    
     for (let user of users) {
-        if(username == user.username && password == user.password) {
+        if (username == user.username && password == user.password) {
             let token = jwt.sign({ id: user.id, username: user.username }, secretKey, { expiresIn: '7d'});
             res.json({
                 success: true,
@@ -51,40 +49,46 @@ app.post('/api/login', (req, res) => {
                 token
             });
             break;
-        }
-        else{
+        } else {
             res.status(401).json({
                 success: false,
                 token: null,
-                err: 'Username or password incorrect'
-            })
+                err: 'Username or password is incorrect'
+            });
+            break;
         }
     }
 });
 
 app.get('/api/dashboard', jwtMW, (req, res) => {
-    /* console.log(req); */
+    console.log(req);
     res.json({
         success: true,
         myContent: 'Secret content that only logged in people can see.'
     });
 });
 
-app.get('/',(req, res) => {
+app.get('/api/settings', jwtMW, (req, res) => {
+    res.json({
+        success: true,
+        myContent: "This is the settings panel for the login website"
+    });
+});
+
+app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.use(function (err, req, res, next) {
-/*     console.log(err.name == 'UnauthorizedError');
-    console.log(err); */
-    if (err.name == 'UnauthorizedError') {
+app.use (function (err, req, res, next) {
+    console.log(err.name === 'UnauthorizedError');
+    console.log(err);
+    if (err.name === 'UnauthorizedError') {
         res.status(401).json({
             success: false,
-            offcialError: err, 
-            err: 'Username or password is incorrect 2'
+            officialError: err,
+            err: 'Username of password is incorrect 2'
         });
-    }
-    else {
+    } else {
         next(err);
     }
 });
